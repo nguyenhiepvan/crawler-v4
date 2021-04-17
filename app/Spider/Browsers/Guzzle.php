@@ -12,9 +12,9 @@ namespace App\Spider\Browsers;
 use GuzzleHttp\Client;
 
 class Guzzle implements BrowserInterface {
-    
+
     protected $client;
-    
+
     /**
      * Guzzle constructor.
      *
@@ -24,14 +24,14 @@ class Guzzle implements BrowserInterface {
         if($client){
             $this->client = $client;
         }else{
-            $this->client = new Client();
+            $this->client = new Client(config("crawl.browers.guzzle"));
         }
     }
-    
-    
+
+
     public function getHtml( $url ) {
         $response = $this->client->get( $url );
         return $response->getBody()->getContents();
     }
-    
+
 }

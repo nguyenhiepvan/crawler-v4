@@ -22,12 +22,13 @@ use App\Spider\Enum\ProcessStatus;
 use App\Spider\Enum\ProcessType;
 use App\Spider\Exceptions\SitePageNotFound;
 use App\Spider\QueueDrivers\CrawlQueueInterface;
+use App\Spider\StorageDrivers\DataStorageInterface;
 use Symfony\Component\DomCrawler\Crawler;
 
 class SpiderRunner {
-    
+
     protected $site;
-    
+
     /** @var LinkCollectorInterface */
     protected $link_collector;
     /** @var DataCollectorInterface */
@@ -40,7 +41,7 @@ class SpiderRunner {
     /** @var BrowserInterface */
     protected $js_browser;
     protected $last_render_time;
-    
+
     /**
      * SpiderRunner constructor.
      *
@@ -58,18 +59,18 @@ class SpiderRunner {
         $this->site = $site;
         $this->queue = $queue;
         $this->data_storage = $data_storage;
-        
+
         $this->link_collector = new RuledLinkCollector();
         $this->data_collector = new RuledDataCollector();
-        
-        
+
+
         $this->browser = BrowserManager::get( 'guzzle');
         $this->js_browser = BrowserManager::get( 'phantomjs');
     }
-    
+
     public function crawl_init(){
         // validate
-        
+
         // add start page
         /** @var Page $page */
         foreach ($this->site->getPages() as $page){
@@ -80,7 +81,7 @@ class SpiderRunner {
             $this->queue->add( $crawl_url );
         }
     }
-    
+
     public function run_crawl_links($get_data = false){
         do{
             $pending_link_url = $this->queue->getFirstPendingUrl(ProcessType::LINK);
@@ -104,9 +105,9 @@ class SpiderRunner {
                 $pending_data_url = false;
             }
         }while($pending_link_url || $pending_data_url);
-        
+
     }
-    
+
     public function run_get_data($sleep = 5){
         do{
             $pending_data_url = $this->queue->getFirstPendingUrl(ProcessType::DATA);
@@ -121,7 +122,7 @@ class SpiderRunner {
             }
         }while($pending_data_url);
     }
-    
+
     /**
      * Kiểm tra xem site đã lấy hết link/data chưa
      *
@@ -130,22 +131,22 @@ class SpiderRunner {
      * @return bool
      */
     protected function isDone($type = 'all') : bool {
-    
+
     }
-    
+
     protected function getChildren(CrawlUrl $crawlUrl){
         $this->renderHtml( $crawlUrl );
         $page = $this->site->getPage($crawlUrl->getStep());
         if(!$page){
             throw new SitePageNotFound("Can not find site page config for " . $crawlUrl->getStep());
         }
-        
+
         $this->log( $crawlUrl, "Get Child");
-        
+
         $navigation_rules = $page->getNavigationRules();
-        
+
         start_get_children_by_rules:
-        
+
         /**
          * @var string $page_name
          * @var NavigationRule $rule
@@ -159,7 +160,7 @@ class SpiderRunner {
             }
         }
     }
-    
+
     protected function renderHtml(CrawlUrl $crawlUrl){
         $this->sleepBeforeRender();
         if($crawlUrl->jsRender()){
@@ -171,7 +172,7 @@ class SpiderRunner {
         $crawler->addHtmlContent( $html );
         $crawlUrl->setHtml( $crawler );
     }
-    
+
     protected function sleepBeforeRender(){
         if($this->site->getDelay() == 0){
             return;
@@ -183,7 +184,7 @@ class SpiderRunner {
         }
         $this->last_render_time = now()->timestamp;
     }
-    
+
     protected function log(CrawlUrl $crawlUrl, $prefix = '', $data = null){
         if(!$prefix){
             dump("[" . $crawlUrl->getStep() . "]"
@@ -198,5 +199,5 @@ class SpiderRunner {
             dump($data);
         }
     }
-    
+
 }
